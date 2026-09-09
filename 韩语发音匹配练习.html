@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>韩语单字发音强化训练器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 850px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+            padding: 24px;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 左侧卡片区域 */
+        .card-section {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 40px 20px 20px 20px;
+            min-height: 380px;
+        }
+
+        .korean-char {
+            font-size: 110px;
+            font-weight: 700;
+            color: #0f172a;
+            user-select: none;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+
+        .score-board {
+            font-size: 15px;
+            font-weight: 600;
+            color: #64748b;
+            background: #ffffff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* 右侧交互区域 */
+        .interactive-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 12px;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background-color: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background-color: #e2e8f0;
+            border-color: #cbd5e1;
+        }
+
+        .option-btn.correct {
+            background-color: #dcfce7 !important;
+            border-color: #22c55e !important;
+            color: #15803d !important;
+        }
+
+        .option-btn.wrong {
+            background-color: #ffe4e6 !important;
+            border-color: #f43f5e !important;
+            color: #be123c !important;
+        }
+
+        .action-area {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .feedback {
+            height: 24px;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .feedback.correct { color: #15803d; }
+        .feedback.wrong { color: #be123c; }
+
+        .next-btn {
+            background-color: #2563eb;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .next-btn:hover:not(:disabled) {
+            background-color: #1d4ed8;
+        }
+
+        .next-btn:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 左侧展示区 -->
+    <div class="card-section">
+        <div id="koreanChar" class="korean-char">한</div>
+        <div id="scoreBoard" class="score-board">得分: 0 / 0 (0%)</div>
+    </div>
+
+    <!-- 右侧交互区 -->
+    <div class="interactive-section">
+        <div class="title">请选择正确的罗马字发音：</div>
+        
+        <div class="options-grid" id="optionsGrid">
+            <button class="option-btn" onclick="selectOption(0)"></button>
+            <button class="option-btn" onclick="selectOption(1)"></button>
+            <button class="option-btn" onclick="selectOption(2)"></button>
+            <button class="option-btn" onclick="selectOption(3)"></button>
+        </div>
+
+        <div class="action-area">
+            <div id="feedback" class="feedback"></div>
+            <button id="nextBtn" class="next-btn" onclick="nextQuestion()" disabled>下一题 (Enter)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 基础训练词库
+    const wordBank = [
+        { char: "가", roman: "ga" }, { char: "나", roman: "na" }, { char: "다", roman: "da" },
+        { char: "라", roman: "ra" }, { char: "마", roman: "ma" }, { char: "바", roman: "ba" },
+        { char: "사", roman: "sa" }, { char: "아", roman: "a"  }, { char: "자", roman: "ja" },
+        { char: "차", roman: "cha"}, { char: "카", roman: "ka" }, { char: "타", roman: "ta" },
+        { char: "파", roman: "pa" }, { char: "하", roman: "ha" }, { char: "한", roman: "han" },
+        { char: "글", roman: "geul"}, { char: "국", roman: "guk"}, { char: "민", roman: "min" },
+        { char: "정", roman: "jeong"},{ char: "음", roman: "eum"}
+    ];
+
+    let currentWord = null;
+    let currentOptions = [];
+    let isAnswered = false;
+    let totalAnswered = 0;
+    let correctCount = 0;
+
+    const charEl = document.getElementById('koreanChar');
+    const scoreEl = document.getElementById('scoreBoard');
+    const feedbackEl = document.getElementById('feedback');
+    const nextBtn = document.getElementById('nextBtn');
+    const optionBtns = document.querySelectorAll('.option-btn');
+
+    // 生成新题目
+    function nextQuestion() {
+        isAnswered = false;
+        feedbackEl.textContent = '';
+        feedbackEl.className = 'feedback';
+        nextBtn.disabled = true;
+
+        // 随机挑选目标词
+        currentWord = wordBank[Math.floor(Math.random() * wordBank.length)];
+        charEl.textContent = currentWord.char;
+
+        // 构建 4 个选项（1 正确 + 3 干扰）
+        let optionsSet = new Set([currentWord.roman]);
+        while (optionsSet.size < 4) {
+            let randomWord = wordBank[Math.floor(Math.random() * wordBank.length)];
+            optionsSet.add(randomWord.roman);
+        }
+
+        // 打乱顺序
+        currentOptions = Array.from(optionsSet).sort(() => Math.random() - 0.5);
+
+        // 渲染到按钮
+        optionBtns.forEach((btn, index) => {
+            btn.textContent = currentOptions[index];
+            btn.className = 'option-btn';
+            btn.disabled = false;
+        });
+    }
+
+    // 选择答案
+    function selectOption(index) {
+        if (isAnswered) return;
+
+        isAnswered = true;
+        totalAnswered++;
+        const selectedRoman = currentOptions[index];
+
+        if (selectedRoman === currentWord.roman) {
+            correctCount++;
+            optionBtns[index].classList.add('correct');
+            feedbackEl.textContent = '正确！';
+            feedbackEl.className = 'feedback correct';
+        } else {
+            optionBtns[index].classList.add('wrong');
+            feedbackEl.textContent = `错误！正确发音是: ${currentWord.roman}`;
+            feedbackEl.className = 'feedback wrong';
+            
+            // 高亮正确答案
+            optionBtns.forEach((btn, i) => {
+                if (currentOptions[i] === currentWord.roman) {
+                    btn.classList.add('correct');
+                }
+            });
+        }
+
+        // 禁用所有选项按钮
+        optionBtns.forEach(btn => btn.disabled = true);
+
+        // 更新得分
+        const accuracy = ((correctCount / totalAnswered) * 100).toFixed(1);
+        scoreEl.textContent = `得分: ${correctCount} / ${totalAnswered} (${accuracy}%)`;
+
+        // 激活下一题按钮
+        nextBtn.disabled = false;
+    }
+
+    // 键盘 Enter 快捷键支持
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !nextBtn.disabled) {
+            nextQuestion();
+        }
+    });
+
+    // 页面加载完成后自动开局
+    nextQuestion();
+</script>
+
+</body>
+</html>
