@@ -31,6 +31,7 @@
             grid-template-columns: 1.2fr 1fr;
             gap: 20px;
             padding: 24px;
+            position: relative;
         }
 
         @media (max-width: 640px) {
@@ -48,8 +49,24 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            padding: 40px 20px 20px 20px;
+            padding: 30px 20px 20px 20px;
             min-height: 380px;
+        }
+
+        .status-badge {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2563eb;
+            background: #eff6ff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .status-badge.wrong-phase {
+            color: #e11d48;
+            background: #fff1f2;
+            border-color: #fecdd3;
         }
 
         .korean-char {
@@ -158,15 +175,75 @@
             background-color: #94a3b8;
             cursor: not-allowed;
         }
+
+        /* 完成总结遮罩层 */
+        .summary-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .summary-overlay.hidden {
+            display: none;
+        }
+
+        .summary-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+
+        .summary-desc {
+            font-size: 16px;
+            color: #475569;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .summary-btn {
+            background-color: #2563eb;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 32px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .summary-btn:hover {
+            background-color: #1d4ed8;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- 结算/阶段过渡遮罩 -->
+    <div id="summaryOverlay" class="summary-overlay hidden">
+        <div id="summaryTitle" class="summary-title">第一轮练习完成！</div>
+        <div id="summaryDesc" class="summary-desc">你一共答对了 15/20 题。<br>接下来将对 5 个错题进行清空强化训练。</div>
+        <button id="summaryBtn" class="summary-btn" onclick="handleSummaryAction()">开始错题挑战 (Space)</button>
+    </div>
+
     <!-- 左侧展示区 -->
     <div class="card-section">
+        <div id="statusBadge" class="status-badge">常规练习 1 / 20</div>
         <div id="koreanChar" class="korean-char">한</div>
-        <div id="scoreBoard" class="score-board">得分: 0 / 0 (0%)</div>
+        <div id="scoreBoard" class="score-board">正确率: 0 / 0 (0%)</div>
     </div>
 
     <!-- 右侧交互区 -->
@@ -182,91 +259,125 @@
 
         <div class="action-area">
             <div id="feedback" class="feedback"></div>
-            <button id="nextBtn" class="next-btn" onclick="nextQuestion()" disabled>下一题 (Enter)</button>
+            <button id="nextBtn" class="next-btn" onclick="nextQuestion()" disabled>下一题 (Space)</button>
         </div>
     </div>
 </div>
 
 <script>
-    // 扩充后的标准韩语发音词库
+    // 标准韩语发音扩充词库
     const wordBank = [
-        // 1. 松音基础字 (以 아 元音为例)
         { char: "가", roman: "ga" }, { char: "나", roman: "na" }, { char: "다", roman: "da" },
         { char: "라", roman: "ra" }, { char: "마", roman: "ma" }, { char: "바", roman: "ba" },
         { char: "사", roman: "sa" }, { char: "아", roman: "a"  }, { char: "자", roman: "ja" },
-
-        // 2. 激音基础字
         { char: "차", roman: "cha"}, { char: "카", roman: "ka" }, { char: "타", roman: "ta" },
-        { char: "파", roman: "pa" }, { char: "하", roman: "ha" },
-
-        // 3. 紧音基础字
-        { char: "까", roman: "kka"}, { char: "따", roman: "tta"}, { char: "빠", roman: "ppa"},
-        { char: "싸", roman: "ssa"}, { char: "짜", roman: "jja"},
-
-        // 4. 不同基本元音搭配字
-        { char: "고", roman: "go" }, { char: "노", roman: "no" }, { char: "구", roman: "gu" },
-        { char: "두", roman: "du" }, { char: "그", roman: "geu"}, { char: "느", roman: "neu"},
-        { char: "기", roman: "gi" }, { char: "디", roman: "di" }, { char: "시", roman: "si" },
-        { char: "서", roman: "seo"}, { char: "머", roman: "meo"}, { char: "너", roman: "neo"},
-
-        // 5. 复杂/双元音搭配字
-        { char: "개", roman: "gae"}, { char: "내", roman: "nae"}, { char: "게", roman: "ge" },
-        { char: "세", roman: "se" }, { char: "과", roman: "gwa"}, { char: "화", roman: "hwa"},
-        { char: "귀", roman: "gwi"}, { char: "畏", roman: "oe" }, { char: "의", roman: "ui" },
-        { char: "웨", roman: "we" }, { char: "워", roman: "weo"},
-
-        // 6. 经典单收音字 ( 받침 )
+        { char: "파", roman: "pa" }, { char: "하", roman: "ha" }, { char: "까", roman: "kka"},
+        { char: "따", roman: "tta"}, { char: "빠", roman: "ppa"}, { char: "싸", roman: "ssa"},
+        { char: "짜", roman: "jja"}, { char: "고", roman: "go" }, { char: "노", roman: "no" },
+        { char: "구", roman: "gu" }, { char: "두", roman: "du" }, { char: "그", roman: "geu"},
+        { char: "느", roman: "neu"}, { char: "기", roman: "gi" }, { char: "디", roman: "di" },
+        { char: "시", roman: "si" }, { char: "서", roman: "seo"}, { char: "머", roman: "meo"},
+        { char: "너", roman: "neo"}, { char: "개", roman: "gae"}, { char: "내", roman: "nae"},
+        { char: "게", roman: "ge" }, { char: "세", roman: "se" }, { char: "과", roman: "gwa"},
+        { char: "화", roman: "hwa"}, { char: "귀", roman: "gwi"}, { char: "외", roman: "oe" },
+        { char: "의", roman: "ui" }, { char: "웨", roman: "we" }, { char: "워", roman: "weo"},
         { char: "각", roman: "gak"}, { char: "낙", roman: "nak"}, { char: "산", roman: "san"},
         { char: "눈", roman: "nun"}, { char: "달", roman: "dal"}, { char: "물", roman: "mul"},
         { char: "봄", roman: "bom"}, { char: "남", roman: "nam"}, { char: "밥", roman: "bap"},
         { char: "집", roman: "jip"}, { char: "강", roman: "gang"},{ char: "빵", roman: "ppang"},
         { char: "옷", roman: "ot" }, { char: "꽃", roman: "kkot"},{ char: "빛", roman: "bit"},
-
-        // 7. 双收音单字
         { char: "닭", roman: "dak"}, { char: "삶", roman: "sam"}, { char: "값", roman: "gap"},
-        { char: "앉", roman: "an" }, { char: "읽", roman: "ik" },
-
-        // 8. 常见生活单字/高频汉字音
-        { char: "한", roman: "han"}, { char: "글", roman: "geul"},{ char: "국", roman: "guk"},
-        { char: "민", roman: "min"}, { char: "정", roman: "jeong"},{ char: "음", roman: "eum"},
-        { char: "손", roman: "son"}, { char: "발", roman: "bal"}, { char: "꿈", roman: "kkum"},
-        { char: "돈", roman: "don"}, { char: "낮", roman: "nat"}, { char: "밤", roman: "bam"}
+        { char: "앉", roman: "an" }, { char: "읽", roman: "ik" }, { char: "한", roman: "han"},
+        { char: "글", roman: "geul"},{ char: "국", roman: "guk"}, { char: "민", roman: "min"},
+        { char: "정", roman: "jeong"},{ char: "음", roman: "eum"},{ char: "손", roman: "son"},
+        { char: "발", roman: "bal"}, { char: "꿈", roman: "kkum"},{ char: "돈", roman: "don"},
+        { char: "낮", roman: "nat"}, { char: "밤", roman: "bam"}
     ];
 
+    const ROUND_SIZE = 20; // 每一轮固定题目数量
+
+    // 训练状态变量
+    let currentPool = [];       // 当前待出题集合
+    let wrongPool = [];         // 本轮积累的错题集
+    let isWrongPhase = false;   // 是否处于错题重练阶段
+    let currentIndex = 0;       // 当前题目索引
+    
     let currentWord = null;
     let currentOptions = [];
     let isAnswered = false;
-    let totalAnswered = 0;
-    let correctCount = 0;
+    
+    let totalStats = { total: 0, correct: 0 }; // 统计信息
 
+    // DOM 元素引用
     const charEl = document.getElementById('koreanChar');
     const scoreEl = document.getElementById('scoreBoard');
     const feedbackEl = document.getElementById('feedback');
     const nextBtn = document.getElementById('nextBtn');
     const optionBtns = document.querySelectorAll('.option-btn');
+    const statusBadge = document.getElementById('statusBadge');
+    
+    const summaryOverlay = document.getElementById('summaryOverlay');
+    const summaryTitle = document.getElementById('summaryTitle');
+    const summaryDesc = document.getElementById('summaryDesc');
+    const summaryBtn = document.getElementById('summaryBtn');
 
-    // 生成新题目
-    function nextQuestion() {
+    // 开启全新一轮 (20 题)
+    function startNewRound() {
+        summaryOverlay.classList.add('hidden');
+        isWrongPhase = false;
+        wrongPool = [];
+        currentIndex = 0;
+        totalStats = { total: 0, correct: 0 };
+
+        // 随机打乱完整词库并截取 20 个
+        let shuffled = [...wordBank].sort(() => Math.random() - 0.5);
+        currentPool = shuffled.slice(0, Math.min(ROUND_SIZE, shuffled.length));
+
+        loadQuestion();
+    }
+
+    // 开启错题重练阶段
+    function startWrongPhase() {
+        summaryOverlay.classList.add('hidden');
+        isWrongPhase = true;
+        // 将错题打乱作为新的待考池，同时重置错题集
+        currentPool = [...wrongPool].sort(() => Math.random() - 0.5);
+        wrongPool = [];
+        currentIndex = 0;
+
+        loadQuestion();
+    }
+
+    // 加载当前题目
+    function loadQuestion() {
         isAnswered = false;
         feedbackEl.textContent = '';
         feedbackEl.className = 'feedback';
         nextBtn.disabled = true;
 
-        // 随机挑选目标词
-        currentWord = wordBank[Math.floor(Math.random() * wordBank.length)];
+        // 更新状态角标
+        if (!isWrongPhase) {
+            statusBadge.textContent = `常规练习 ${currentIndex + 1} / ${currentPool.length}`;
+            statusBadge.classList.remove('wrong-phase');
+        } else {
+            statusBadge.textContent = `错题重练 ${currentIndex + 1} / ${currentPool.length}`;
+            statusBadge.classList.add('wrong-phase');
+        }
+
+        // 当前题目目标
+        currentWord = currentPool[currentIndex];
         charEl.textContent = currentWord.char;
 
-        // 构建 4 个选项（1 正确 + 3 干扰）
+        // 生成 4 个选项（1 正确 + 3 干扰）
         let optionsSet = new Set([currentWord.roman]);
         while (optionsSet.size < 4) {
             let randomWord = wordBank[Math.floor(Math.random() * wordBank.length)];
             optionsSet.add(randomWord.roman);
         }
 
-        // 打乱顺序
         currentOptions = Array.from(optionsSet).sort(() => Math.random() - 0.5);
 
-        // 渲染到按钮
+        // 渲染选项按钮
         optionBtns.forEach((btn, index) => {
             btn.textContent = currentOptions[index];
             btn.className = 'option-btn';
@@ -279,11 +390,11 @@
         if (isAnswered) return;
 
         isAnswered = true;
-        totalAnswered++;
+        totalStats.total++;
         const selectedRoman = currentOptions[index];
 
         if (selectedRoman === currentWord.roman) {
-            correctCount++;
+            totalStats.correct++;
             optionBtns[index].classList.add('correct');
             feedbackEl.textContent = '正确！';
             feedbackEl.className = 'feedback correct';
@@ -292,7 +403,12 @@
             feedbackEl.textContent = `错误！正确发音是: ${currentWord.roman}`;
             feedbackEl.className = 'feedback wrong';
             
-            // 高亮正确答案
+            // 记录到错题集 (防止重复添加)
+            if (!wrongPool.some(item => item.char === currentWord.char)) {
+                wrongPool.push(currentWord);
+            }
+
+            // 高亮正确选项
             optionBtns.forEach((btn, i) => {
                 if (currentOptions[i] === currentWord.roman) {
                     btn.classList.add('correct');
@@ -300,26 +416,83 @@
             });
         }
 
-        // 禁用所有选项按钮
+        // 禁用选项
         optionBtns.forEach(btn => btn.disabled = true);
 
-        // 更新得分
-        const accuracy = ((correctCount / totalAnswered) * 100).toFixed(1);
-        scoreEl.textContent = `得分: ${correctCount} / ${totalAnswered} (${accuracy}%)`;
+        // 更新左侧得分板
+        const accuracy = ((totalStats.correct / totalStats.total) * 100).toFixed(1);
+        scoreEl.textContent = `正确率: ${totalStats.correct} / ${totalStats.total} (${accuracy}%)`;
 
-        // 激活下一题按钮
+        // 启用下一题按钮
         nextBtn.disabled = false;
     }
 
-    // 键盘 Enter 快捷键支持
+    // 点击下一题或空格快捷键
+    function nextQuestion() {
+        currentIndex++;
+
+        if (currentIndex < currentPool.length) {
+            loadQuestion();
+        } else {
+            // 当前集合（首轮20题或某一轮错题集）练习结束
+            checkPhaseCompletion();
+        }
+    }
+
+    // 判断本阶段结束后的走向
+    function checkPhaseCompletion() {
+        if (wrongPool.length > 0) {
+            // 仍有错题，提示进入错题挑战
+            if (!isWrongPhase) {
+                summaryTitle.textContent = "常规练习完成！";
+                summaryDesc.innerHTML = `首轮 20 题已完成。<br>答对 <strong>${ROUND_SIZE - wrongPool.length}</strong> 题，剩余 <strong>${wrongPool.length}</strong> 个错题需要强化。`;
+            } else {
+                summaryTitle.textContent = "错题轮次结束";
+                summaryDesc.innerHTML = `还剩 <strong>${wrongPool.length}</strong> 个错题尚未攻克。<br>继续加油，直至全部清空！`;
+            }
+            summaryBtn.textContent = "开始错题挑战 (Space)";
+            summaryBtn.setAttribute('data-action', 'wrong-phase');
+            summaryOverlay.classList.remove('hidden');
+        } else {
+            // 错题全部清空！成功通关
+            summaryTitle.textContent = "🎉 恭喜通关！";
+            summaryDesc.innerHTML = `你已成功清空所有错题，完美掌握了本轮的所有发音！`;
+            summaryBtn.textContent = "开始新一轮练习 (Space)";
+            summaryBtn.setAttribute('data-action', 'new-round');
+            summaryOverlay.classList.remove('hidden');
+        }
+    }
+
+    // 遮罩层按钮点击逻辑
+    function handleSummaryAction() {
+        const action = summaryBtn.getAttribute('data-action');
+        if (action === 'wrong-phase') {
+            startWrongPhase();
+        } else {
+            startNewRound();
+        }
+    }
+
+    // 全局键盘 Space (空格键) 支持
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' && !nextBtn.disabled) {
-            nextQuestion();
+        if (event.key === ' ' || event.code === 'Space') {
+            event.preventDefault(); // 阻止页面滚动
+
+            // 如果处于遮罩结算页，空格触发结算按钮
+            if (!summaryOverlay.classList.contains('hidden')) {
+                handleSummaryAction();
+                return;
+            }
+
+            // 如果下一题按钮可用，空格进入下一题
+            if (!nextBtn.disabled) {
+                nextQuestion();
+            }
         }
     });
 
-    // 页面加载完成后自动开局
-    nextQuestion();
+    // 初始化启动首轮训练
+    startNewRound();
 </script>
 
 </body>
