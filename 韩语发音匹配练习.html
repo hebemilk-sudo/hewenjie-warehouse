@@ -188,15 +188,49 @@
 </div>
 
 <script>
-    // 基础训练词库
+    // 扩充后的标准韩语发音词库
     const wordBank = [
+        // 1. 松音基础字 (以 아 元音为例)
         { char: "가", roman: "ga" }, { char: "나", roman: "na" }, { char: "다", roman: "da" },
         { char: "라", roman: "ra" }, { char: "마", roman: "ma" }, { char: "바", roman: "ba" },
         { char: "사", roman: "sa" }, { char: "아", roman: "a"  }, { char: "자", roman: "ja" },
+
+        // 2. 激音基础字
         { char: "차", roman: "cha"}, { char: "카", roman: "ka" }, { char: "타", roman: "ta" },
-        { char: "파", roman: "pa" }, { char: "하", roman: "ha" }, { char: "한", roman: "han" },
-        { char: "글", roman: "geul"}, { char: "국", roman: "guk"}, { char: "민", roman: "min" },
-        { char: "정", roman: "jeong"},{ char: "음", roman: "eum"}
+        { char: "파", roman: "pa" }, { char: "하", roman: "ha" },
+
+        // 3. 紧音基础字
+        { char: "까", roman: "kka"}, { char: "따", roman: "tta"}, { char: "빠", roman: "ppa"},
+        { char: "싸", roman: "ssa"}, { char: "짜", roman: "jja"},
+
+        // 4. 不同基本元音搭配字
+        { char: "고", roman: "go" }, { char: "노", roman: "no" }, { char: "구", roman: "gu" },
+        { char: "두", roman: "du" }, { char: "그", roman: "geu"}, { char: "느", roman: "neu"},
+        { char: "기", roman: "gi" }, { char: "디", roman: "di" }, { char: "시", roman: "si" },
+        { char: "서", roman: "seo"}, { char: "머", roman: "meo"}, { char: "너", roman: "neo"},
+
+        // 5. 复杂/双元音搭配字
+        { char: "개", roman: "gae"}, { char: "내", roman: "nae"}, { char: "게", roman: "ge" },
+        { char: "세", roman: "se" }, { char: "과", roman: "gwa"}, { char: "화", roman: "hwa"},
+        { char: "귀", roman: "gwi"}, { char: "畏", roman: "oe" }, { char: "의", roman: "ui" },
+        { char: "웨", roman: "we" }, { char: "워", roman: "weo"},
+
+        // 6. 经典单收音字 ( 받침 )
+        { char: "각", roman: "gak"}, { char: "낙", roman: "nak"}, { char: "산", roman: "san"},
+        { char: "눈", roman: "nun"}, { char: "달", roman: "dal"}, { char: "물", roman: "mul"},
+        { char: "봄", roman: "bom"}, { char: "남", roman: "nam"}, { char: "밥", roman: "bap"},
+        { char: "집", roman: "jip"}, { char: "강", roman: "gang"},{ char: "빵", roman: "ppang"},
+        { char: "옷", roman: "ot" }, { char: "꽃", roman: "kkot"},{ char: "빛", roman: "bit"},
+
+        // 7. 双收音单字
+        { char: "닭", roman: "dak"}, { char: "삶", roman: "sam"}, { char: "값", roman: "gap"},
+        { char: "앉", roman: "an" }, { char: "읽", roman: "ik" },
+
+        // 8. 常见生活单字/高频汉字音
+        { char: "한", roman: "han"}, { char: "글", roman: "geul"},{ char: "국", roman: "guk"},
+        { char: "민", roman: "min"}, { char: "정", roman: "jeong"},{ char: "음", roman: "eum"},
+        { char: "손", roman: "son"}, { char: "발", roman: "bal"}, { char: "꿈", roman: "kkum"},
+        { char: "돈", roman: "don"}, { char: "낮", roman: "nat"}, { char: "밤", roman: "bam"}
     ];
 
     let currentWord = null;
